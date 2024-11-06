@@ -57,7 +57,8 @@ class MembersResource extends Resource
             Tables\Columns\TextColumn::make('email')
                 ->searchable(),
             Tables\Columns\TextColumn::make('address')
-                ->searchable(),
+                ->searchable()
+                ->limit(15),
             IconColumn::make('status')
                 ->boolean(),
             Tables\Columns\TextColumn::make('expiry')
