@@ -62,8 +62,19 @@ class MembersResource extends Resource
             IconColumn::make('status')
                 ->boolean(),
             Tables\Columns\TextColumn::make('expiry')
+                ->label('Expiry Date')
                 ->date()
                 ->sortable(),
+
+            Tables\Columns\TextColumn::make('days_remaining')
+                ->label('Days Remaining')
+                ->getStateUsing(fn ($record) => 
+                    is_numeric($record->days_remaining) 
+                        ? round($record->days_remaining) . ' day(s)' 
+                        : $record->days_remaining // Displays "Expired" if the attribute returns "Expired"
+                )
+                ->extraAttributes(['style' => 'display: block; margin-top: 4px; font-weight: bold; color: #4A5568;']),
+            
             Tables\Columns\TextColumn::make('created_at')
                 ->dateTime()
                 ->sortable()
@@ -91,6 +102,7 @@ class MembersResource extends Resource
             ]),
         ]);
 }
+
 
 
     public static function getRelations(): array

@@ -55,7 +55,6 @@ class Members extends Model
         }
     }
 
-    // Automatically update status if expiry date has passed
     public function checkExpiry()
     {
         if ($this->expiry && Carbon::now()->greaterThan($this->expiry)) {
@@ -64,9 +63,24 @@ class Members extends Model
         }
     }
 
-    // Accessor for full name
     public function getNameAttribute()
     {
         return "{$this->last_name}, {$this->first_name} {$this->middle_initial}";
+    }
+
+    public function getDaysRemainingAttribute()
+    {
+        if (!$this->status) {
+            return 'Expired';
+        }
+
+        if (!$this->expiry) {
+            return null;
+        }
+
+        $now = Carbon::now();
+        $expiry = Carbon::parse($this->expiry);
+        
+        return $now->diffInDays($expiry);
     }
 }

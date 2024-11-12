@@ -31,7 +31,8 @@ class MembershipResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('duration')
                     ->required()
-                    ->numeric(),
+                    ->numeric()
+                    ->suffix('days'),
                 Forms\Components\TextInput::make('price')
                     ->required()
                     ->numeric()
@@ -48,10 +49,11 @@ class MembershipResource extends Resource
                 Tables\Columns\TextColumn::make('description')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('duration')
+                    ->formatStateUsing(fn ($state) => $state . ' days')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('price')
-                    ->money()
+                    ->money('PHP')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
