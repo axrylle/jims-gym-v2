@@ -63,17 +63,12 @@ class MembersResource extends Resource
                 ->boolean(),
             Tables\Columns\TextColumn::make('expiry')
                 ->label('Expiry Date')
-                ->date()
+                ->formatStateUsing(fn ($record) => view('components.expiry-with-days', [
+                    'expiry' => $record->expiry,
+                    'daysRemaining' => $record->days_remaining,
+                ])->render())
+                ->html() // Allow HTML rendering for custom formatting.
                 ->sortable(),
-
-            Tables\Columns\TextColumn::make('days_remaining')
-                ->label('Days Remaining')
-                ->getStateUsing(fn ($record) => 
-                    is_numeric($record->days_remaining) 
-                        ? round($record->days_remaining) . ' day(s)' 
-                        : $record->days_remaining // Displays "Expired" if the attribute returns "Expired"
-                )
-                ->extraAttributes(['style' => 'display: block; margin-top: 4px; font-weight: bold; color: #4A5568;']),
             
             Tables\Columns\TextColumn::make('created_at')
                 ->dateTime()
