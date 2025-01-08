@@ -13,6 +13,7 @@ class Membership extends Model
         'description',
         'duration',
         'price',
+        'image_name',
     ];
 
 }
