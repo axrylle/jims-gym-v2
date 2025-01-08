@@ -12,10 +12,10 @@
                                 class="w-full h-auto object-cover"
                             /> --}}
                             <img 
-                            src="{{ asset('images/' . $membership->image_name) }}" 
-                            alt="{{ $membership->name }}" 
-                            class="w-full h-auto object-cover"
-                            />
+                                src="{{ $membership->image_name ? asset('storage/' . $membership->image_name) : asset('images/default.jpg') }}" 
+                                alt="{{ $membership->name }}" 
+                                class="w-full h-auto object-cover"
+                           />
                             <div 
                                 class="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-white to-transparent pointer-events-none">
                             </div>
