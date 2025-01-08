@@ -18,24 +18,28 @@ class membershipSeeder extends Seeder
                 'description' => '30-day membership with standard gym access.',
                 'duration' => 30,
                 'price' => 290.0,
+                'image_name' => 'images/basic.jpg',
             ],
             [
                 'name' => 'Standard',
                 'description' => '90-day membership with standard gym access and additional perks (e.g., discounted personal training sessions).',
                 'duration' => 90,
                 'price' => 520.0,
+                'image_name' => 'images/standard.jpg',
             ],
             [
                 'name' => 'Premium',
                 'description' => '180-day membership with premium gym access, priority booking, and exclusive fitness classes.',
                 'duration' => 180,
                 'price' => 800.0,
+                'image_name' => 'images/premium.jpg',
             ],
             [
                 'name' => 'Platinum',
                 'description' => '360-day membership with ultimate gym access, personalized training plans, and priority spa services.',
                 'duration' => 360,
                 'price' => 1200.0,
+                'image_name' => 'images/platinum.jpg',
             ],
         ];
 

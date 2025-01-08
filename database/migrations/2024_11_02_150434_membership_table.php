@@ -22,7 +22,6 @@ return new class extends Migration
 
         Schema::create('membership_user', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('membership_id')->constrained('membership');  // Ensured proper foreign key setup
             $table->string('last_name')->nullable();
             $table->string('first_name')->nullable();
             $table->string('middle_initial')->nullable();
@@ -30,7 +29,6 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('address')->nullable();
             $table->boolean('status')->default(true);
-            $table->date('expiry')->nullable();
             $table->timestamps();
         });
     }

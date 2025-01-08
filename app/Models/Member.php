@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class Member extends Model
@@ -13,7 +14,6 @@ class Member extends Model
     protected $table = 'membership_user';
 
     protected $fillable = [
-        'membership_id',
         'last_name',
         'first_name',
         'middle_initial',
@@ -21,43 +21,12 @@ class Member extends Model
         'email',
         'address',
         'status',
-        'expiry',
     ];
-
-    protected $dates = ['expiry'];
 
     public function membership()
     {
-        return $this->belongsTo(Membership::class);
-    }
-
-    protected static function boot()
-    {
-        parent::boot();
-
-        // Set expiry only on creation
-        static::creating(function ($member) {
-            $member->setExpiryDate();
-        });
-
-        // Check expiry only on retrieval
-        static::retrieved(function ($member) {
-            $member->checkExpiry();
-        });
-    }
-
-    public function setExpiryDate()
-    {
-        if ($this->membership && !$this->expiry) {
-            $this->expiry = Carbon::now()->addDays($this->membership->duration);
-        }
-    }
-
-    public function checkExpiry()
-    {
-        if ($this->expiry && Carbon::now()->greaterThan($this->expiry)) {
-            $this->status = false;
-        }
+        return $this->belongsToMany(Membership::class, 'member_membership', 'member_id', 'membership_id')
+            ->withPivot('expiry');
     }
 
     public function getNameAttribute()

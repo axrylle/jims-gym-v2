@@ -9,6 +9,6 @@ class MembershipUserSeeder extends Seeder
 {
     public function run()
     {
-        Member::factory(150)->create();  // Use the actual model name (Members)
+        Member::factory(25)->create();  // Use the actual model name (Members)
     }
 }

@@ -6,10 +6,15 @@
                     <div class="relative flex flex-col md:flex-row items-center">
                         <!-- Image Section -->
                         <div class="relative w-full md:w-1/3">
-                            <img 
-                                src="{{ asset('memberships/' . strtolower(str_replace(' ', '-', $membership->name)) . '.jpg') }}" 
+                            {{-- <img 
+                                src="{{ asset('images/' . strtolower(str_replace(' ', '-', $membership->name)) . '.jpg') }}" 
                                 alt="{{ $membership->name }}" 
                                 class="w-full h-auto object-cover"
+                            /> --}}
+                            <img 
+                            src="{{ asset('images/' . $membership->image_name) }}" 
+                            alt="{{ $membership->name }}" 
+                            class="w-full h-auto object-cover"
                             />
                             <div 
                                 class="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-white to-transparent pointer-events-none">

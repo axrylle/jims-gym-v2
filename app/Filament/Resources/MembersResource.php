@@ -47,11 +47,11 @@ class MembersResource extends Resource
 {
     return $table
         ->columns([
-            Tables\Columns\TextColumn::make('membership.name')
-                ->sortable(),
             Tables\Columns\TextColumn::make('name') // Display the full name
                 ->label('Name')
                 ->searchable(),
+            Tables\Columns\TextColumn::make('membership.name')
+                ->sortable(),
             Tables\Columns\TextColumn::make('contact_number')
                 ->searchable(),
             Tables\Columns\TextColumn::make('email')
