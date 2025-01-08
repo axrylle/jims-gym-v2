@@ -35,14 +35,12 @@ class Member extends Model
     {
         parent::boot();
 
+        // Set expiry only on creation
         static::creating(function ($member) {
             $member->setExpiryDate();
         });
 
-        static::updating(function ($member) {
-            $member->setExpiryDate();
-        });
-
+        // Check expiry only on retrieval
         static::retrieved(function ($member) {
             $member->checkExpiry();
         });
@@ -50,7 +48,7 @@ class Member extends Model
 
     public function setExpiryDate()
     {
-        if ($this->membership) {
+        if ($this->membership && !$this->expiry) {
             $this->expiry = Carbon::now()->addDays($this->membership->duration);
         }
     }
@@ -59,7 +57,6 @@ class Member extends Model
     {
         if ($this->expiry && Carbon::now()->greaterThan($this->expiry)) {
             $this->status = false;
-            $this->save();
         }
     }
 
