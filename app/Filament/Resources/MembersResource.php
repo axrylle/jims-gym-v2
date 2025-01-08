@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MembersResource\Pages;
 use App\Filament\Resources\MembersResource\RelationManagers;
-use App\Models\Members;
+use App\Models\Member;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -16,7 +16,7 @@ use Filament\Tables\Columns\IconColumn;
 
 class MembersResource extends Resource
 {
-    protected static ?string $model = Members::class;
+    protected static ?string $model = Member::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
