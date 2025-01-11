@@ -114,14 +114,19 @@ class Member extends Model
         $expiryRecord = $this->expiryRecord;
 
         if ($expiryRecord) {
-            // Check if the expiry date has passed
+            // Parse the expiry date from the expiry record
             $expiryDate = Carbon::parse($expiryRecord->expiry);
             $now = Carbon::now();
 
-            // If the expiry date is in the past, delete the expiry record
+            // If the expiry date is in the past, delete the expiry record and the related membership
             if ($expiryDate->isPast()) {
+                // Delete the expiry record
                 $expiryRecord->delete();
+
+                // Delete the associated membership from the pivot table
+                $this->memberships()->detach();
             }
         }
     }
+
 }
