@@ -16,4 +16,8 @@ class Membership extends Model
         'image_name',
     ];
 
+    public function members()
+    {
+        return $this->belongsToMany(Member::class, 'member_membership', 'membership_id', 'member_id');
+    }
 }
