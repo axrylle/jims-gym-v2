@@ -37,4 +37,25 @@ class Coupon extends Model
             }
         });
     }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    public static function validateAndUse($code)
+    {
+        $coupon = self::where('code', $code)->first();
+
+        if (!$coupon) {
+            throw new \Exception('Coupon not found.');
+        }
+
+        if ($coupon->status !== 'active') {
+            throw new \Exception('Coupon is not active.');
+        }
+
+        $coupon->update(['status' => 'used']);
+        return $coupon;
+    }
 }

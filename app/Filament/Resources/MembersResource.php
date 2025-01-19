@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Columns\IconColumn;
 use App\Models\Membership;
+use Filament\Forms\Components\Section;
+use App\Models\Coupon;
+use Illuminate\Validation\ValidationException;
 
 
 class MembersResource extends Resource
@@ -25,46 +28,62 @@ class MembersResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
+            ->columns(3)
             ->schema([
-                Forms\Components\Select::make('membership_id')
-                ->relationship('memberships', 'name')
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function (callable $set, $state, $record) {
-                    if ($state) {
-                        $membership = Membership::find($state);
-            
-                        if ($membership) {
-                            // Calculate expiry date based on the membership's duration
-                            $expiryDate = now()->addDays($membership->duration)->toDateString();
-                            $set('expiry', $expiryDate);
+                Section::make('Member Information')
+                    ->columnSpan(2)
+                    ->columns(3)
+                    ->schema([
+                        Forms\Components\TextInput::make('last_name')
+                            ->autofocus()
+                            ->required(),
+                        Forms\Components\TextInput::make('first_name')
+                            ->required(),
+                        Forms\Components\TextInput::make('middle_initial')
+                            ->required(),
+                        Forms\Components\TextInput::make('contact_number')
+                            ->required(),
+                        Forms\Components\TextInput::make('email')
+                            ->required(),
+                        Forms\Components\Textarea::make('address')
+                            ->required()
+                            ->rows(3)
+                            ->columnSpan(3),
+                    ]),
+                Section::make('Membership Information')
+                    ->columnSpan(1)
+                    ->schema([
+                        Forms\Components\Select::make('membership_id')
+                            ->relationship('memberships', 'name')
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(function (callable $set, $state, $record) {
+                                if ($state) {
+                                    $membership = Membership::find($state);
+                        
+                                    if ($membership) {
+                                        // Calculate expiry date based on the membership's duration
+                                        $expiryDate = now()->addDays($membership->duration)->toDateString();
+                                        $set('expiry', $expiryDate);
 
-                            if ($record) {
-                                $record->expiryRecord()->updateOrCreate(
-                                    ['member_id' => $record->id],
-                                    ['expiry' => $expiryDate]
-                                );
-                            }
-                        }
-                    }
-                }),
-                Forms\Components\TextInput::make('last_name')
-                    ->maxLength(255)
-                    ->required(),
-                Forms\Components\TextInput::make('first_name')
-                    ->maxLength(255)
-                    ->required(),
-                Forms\Components\TextInput::make('middle_initial')
-                    ->maxLength(1),
-                Forms\Components\TextInput::make('contact_number')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('email')
-                    ->email()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('address')
-                    ->maxLength(255),
-                Forms\Components\DatePicker::make('expiry')
-                    ->disabled(), // Ensure this is read-only as it is auto-calculated
+                                        if ($record) {
+                                            $record->expiryRecord()->updateOrCreate(
+                                                ['member_id' => $record->id],
+                                                ['expiry' => $expiryDate]
+                                            );
+                                        }
+                                    }
+                                }
+                            }),
+                        Forms\Components\TextInput::make('coupon_code')
+                            ->label('Coupon Code')
+                            ->reactive()
+                            // ->afterStateUpdated()
+                            ->helperText(fn (callable $get) => $get('coupon_message'))
+                            ->dehydrated(),
+                        Forms\Components\DatePicker::make('expiry')
+                            ->disabled(), // Ensure this is read-only as it is auto-calculated
+                    ]),
             ]);
     }
     
@@ -142,8 +161,6 @@ class MembersResource extends Resource
                 ]),
             ]);
     }
-
-
 
     public static function getRelations(): array
     {

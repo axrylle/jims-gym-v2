@@ -76,7 +76,51 @@ class Member extends Model
             $member->updateStatusBasedOnExpiry();
             $member->deleteExpiredExpiryRecord();
         });
+
+        static::creating(function ($member) {
+            if (!empty($member->coupon_code)) {
+                Coupon::validateAndUse($member->coupon_code);
+            }
+        });
     }
+
+    public function useCoupon($couponCode)
+    {
+        // Find the coupon with the given code
+        $coupon = Coupon::where('code', $couponCode)->first();
+    
+        // If the coupon is not found, return a descriptive message
+        if (!$coupon) {
+            return ['success' => false, 'message' => 'Coupon not found.'];
+        }
+    
+        // Check if the coupon is expired
+        if ($coupon->expiry->isPast()) {
+            return ['success' => false, 'message' => 'Coupon has expired.'];
+        }
+    
+        // Check if the coupon is already used
+        if ($coupon->status === 'used') {
+            return ['success' => false, 'message' => 'Coupon has already been used.'];
+        }
+    
+        // Retrieve the user's membership
+        $membership = $this->memberships()->first();
+    
+        // If no membership exists, return an error
+        if (!$membership) {
+            return ['success' => false, 'message' => 'No membership found for the user.'];
+        }
+    
+        // Use a database transaction to ensure atomicity
+        return \DB::transaction(function () use ($coupon) {
+            // Mark the coupon as used
+            $coupon->status = 'used';
+            $coupon->save();
+    
+            return ['success' => true, 'message' => 'Coupon applied successfully.'];
+        });
+    }  
 
     /**
      * Update member status based on the expiry date.
@@ -128,5 +172,4 @@ class Member extends Model
             }
         }
     }
-
 }
