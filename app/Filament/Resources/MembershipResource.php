@@ -40,7 +40,7 @@ class MembershipResource extends Resource
                             ->suffix('days'),
                         Forms\Components\MarkdownEditor::make('description')
                             ->required()
-                            ->maxLength(255)
+                            // ->maxLength(255)
                             ->columnSpan('full'),
                     ]),
                 Section::make('Membership Pricing')
