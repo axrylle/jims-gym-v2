@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
 
 class Member extends Model
 {
@@ -34,6 +35,11 @@ class Member extends Model
     public function expiryRecord()
     {
         return $this->hasOne(MemberExpiry::class, 'member_id');
+    }
+
+    public function coupon($couponCode)
+    {
+        return $this->hasOne(Coupon::class, 'member_id');
     }
     
 
@@ -66,61 +72,79 @@ class Member extends Model
         }
         return 'Expired';
     }
-       
+    
     public static function boot()
     {
         parent::boot();
-
+    
         // This event runs when the model is retrieved from the database
         static::retrieved(function ($member) {
             $member->updateStatusBasedOnExpiry();
             $member->deleteExpiredExpiryRecord();
         });
-
+    
         static::creating(function ($member) {
+            // Check if coupon_code is provided
             if (!empty($member->coupon_code)) {
-                Coupon::validateAndUse($member->coupon_code);
+                // Find the coupon by code
+                $coupon = Coupon::where('code', $member->coupon_code)->first();
+    
+                // If coupon doesn't exist
+                if (!$coupon) {
+                    throw ValidationException::withMessages([
+                        'coupon_code' => 'The coupon code does not exist.'
+                    ]);
+                }
+    
+                // If coupon has already been assigned to a member
+                if ($coupon->member_id !== null) {
+                    throw ValidationException::withMessages([
+                        'coupon_code' => 'The coupon has already been used.'
+                    ]);
+                }
+    
+                // If coupon is expired
+                if ($coupon->status == 'expired') {
+                    throw ValidationException::withMessages([
+                        'coupon_code' => 'The coupon is expired.'
+                    ]);
+                }
+    
+                // If coupon is valid, assign the member_id to the coupon
+                DB::transaction(function () use ($coupon, $member) {
+                    $coupon->member_id = $member->id;
+                    $coupon->status = 'used';  // Mark the coupon as used
+                    $coupon->save();
+                });
+            }
+        });
+    
+        static::saving(function ($member) {
+            // Check if there is an active membership and calculate the expiry
+            $membership = $member->memberships()->latest()->first();
+    
+            if ($membership) {
+                $expiryDate = Carbon::now()->addDays($membership->duration)->toDateString();
+    
+                // Update the expiry record or create one
+                $member->expiryRecord()->updateOrCreate(
+                    ['member_id' => $member->id],
+                    ['expiry' => $expiryDate]
+                );
+            }
+        });
+    
+        static::created(function ($member) {
+            // After a member is created, assign their ID to a coupon
+            $coupon = Coupon::whereNull('member_id')->first(); // Find the first coupon with no member_id
+    
+            if ($coupon) {
+                $coupon->member_id = $member->id; // Assign the member's ID to the coupon
+                $coupon->save(); // Save the coupon with the updated member_id
             }
         });
     }
-
-    public function useCoupon($couponCode)
-    {
-        // Find the coupon with the given code
-        $coupon = Coupon::where('code', $couponCode)->first();
     
-        // If the coupon is not found, return a descriptive message
-        if (!$coupon) {
-            return ['success' => false, 'message' => 'Coupon not found.'];
-        }
-    
-        // Check if the coupon is expired
-        if ($coupon->expiry->isPast()) {
-            return ['success' => false, 'message' => 'Coupon has expired.'];
-        }
-    
-        // Check if the coupon is already used
-        if ($coupon->status === 'used') {
-            return ['success' => false, 'message' => 'Coupon has already been used.'];
-        }
-    
-        // Retrieve the user's membership
-        $membership = $this->memberships()->first();
-    
-        // If no membership exists, return an error
-        if (!$membership) {
-            return ['success' => false, 'message' => 'No membership found for the user.'];
-        }
-    
-        // Use a database transaction to ensure atomicity
-        return \DB::transaction(function () use ($coupon) {
-            // Mark the coupon as used
-            $coupon->status = 'used';
-            $coupon->save();
-    
-            return ['success' => true, 'message' => 'Coupon applied successfully.'];
-        });
-    }  
 
     /**
      * Update member status based on the expiry date.
@@ -172,4 +196,5 @@ class Member extends Model
             }
         }
     }
+
 }

@@ -12,12 +12,14 @@ class Coupon extends Model
         'code',
         'description',
         'discount',
+        'member_id',
         'status',
         'expiry',
     ];
 
     protected $casts = [
         'expiry' => 'date',
+        // 'member_id' => 'null',
     ];
 
     protected static function boot()
@@ -35,6 +37,10 @@ class Coupon extends Model
                 $coupon->status = 'expired';
                 $coupon->save();
             }
+            if (!is_null($coupon->member_id)) {
+                $coupon->status = 'used';
+                $coupon->save();
+            }            
         });
     }
 
@@ -58,4 +64,10 @@ class Coupon extends Model
         $coupon->update(['status' => 'used']);
         return $coupon;
     }
+
+    public function member()
+    {
+        return $this->belongsTo(Member::class, 'coupon_id');
+    }
+    
 }

@@ -16,8 +16,7 @@ use Filament\Tables\Columns\IconColumn;
 use App\Models\Membership;
 use Filament\Forms\Components\Section;
 use App\Models\Coupon;
-use Illuminate\Validation\ValidationException;
-
+use Filament\Notifications\Notification;
 
 class MembersResource extends Resource
 {
@@ -57,33 +56,68 @@ class MembersResource extends Resource
                             ->relationship('memberships', 'name')
                             ->required()
                             ->reactive()
-                            ->afterStateUpdated(function (callable $set, $state, $record) {
+                            ->afterStateUpdated(function (callable $set, $state) {
                                 if ($state) {
                                     $membership = Membership::find($state);
-                        
+                    
                                     if ($membership) {
-                                        // Calculate expiry date based on the membership's duration
                                         $expiryDate = now()->addDays($membership->duration)->toDateString();
                                         $set('expiry', $expiryDate);
-
-                                        if ($record) {
-                                            $record->expiryRecord()->updateOrCreate(
-                                                ['member_id' => $record->id],
-                                                ['expiry' => $expiryDate]
-                                            );
-                                        }
                                     }
                                 }
                             }),
                         Forms\Components\TextInput::make('coupon_code')
-                            ->label('Coupon Code')
-                            ->reactive()
-                            // ->afterStateUpdated()
-                            ->helperText(fn (callable $get) => $get('coupon_message'))
-                            ->dehydrated(),
+                            ->nullable()
+                            ->afterStateUpdated(function (callable $set, $state) {
+                                // If the coupon code is not empty
+                                if ($state) {
+                                    $coupon = Coupon::where('code', $state)->first();
+                        
+                                    // If coupon doesn't exist
+                                    if (!$coupon) {
+                                        Notification::make()
+                                            ->title('Coupon does not exist')
+                                            ->danger()
+                                            ->send();
+                                        // Clear the coupon_code state to avoid saving a non-existent coupon
+                                        $set('coupon_code', null);
+                                        return;
+                                    }
+                        
+                                    // If coupon has already been assigned to a member
+                                    if ($coupon->member_id !== null) {
+                                        Notification::make()
+                                            ->title('Coupon already used')
+                                            ->danger()
+                                            ->send();
+                                        // Clear the coupon_code state
+                                        $set('coupon_code', null);
+                                        return;
+                                    }
+                        
+                                    // If coupon is expired
+                                    if ($coupon->status == 'expired') {
+                                        Notification::make()
+                                            ->title('Coupon expired')
+                                            ->danger()
+                                            ->send();
+                                        // Clear the coupon_code state
+                                        $set('coupon_code', null);
+                                        return;
+                                    }
+                        
+                                    // If coupon is valid
+                                    Notification::make()
+                                        ->title('Coupon valid')
+                                        ->success()
+                                        ->send();
+                                }
+                            }),
                         Forms\Components\DatePicker::make('expiry')
-                            ->disabled(), // Ensure this is read-only as it is auto-calculated
+                            ->readOnly(), // Display only
                     ]),
+                    
+                    
             ]);
     }
     
@@ -95,17 +129,20 @@ class MembersResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name') // Display the full name
                     ->label('Name')
+                    ->limit(20)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('memberships.name')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('contact_number')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
+                    ->limit(15)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('address')
                     ->searchable()
                     ->limit(15),
                 IconColumn::make('status')
+                    ->sortable()
                     ->boolean(),
                     Tables\Columns\TextColumn::make('expiryRecord.expiry')
                     ->label('Expiry Date')
@@ -154,7 +191,7 @@ class MembersResource extends Resource
                     })
                     ->color('success'), // Optional: Add a color for the button
             ])
-            
+            ->paginated(false)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

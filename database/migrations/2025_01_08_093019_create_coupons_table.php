@@ -17,10 +17,11 @@ return new class extends Migration
             $table->string('code');
             $table->string('description');
             $table->float('discount');
+            $table->foreignId('member_id')->nullable()->constrained('membership_user')->onDelete('cascade');
             $table->string('status')->default('active');
             $table->date('expiry');
             $table->timestamps();
-        });
+        });        
     }
 
     /**
