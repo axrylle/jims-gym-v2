@@ -50,6 +50,7 @@ class MembersResource extends Resource
                             ->columnSpan(3),
                     ]),
                 Section::make('Membership Information')
+                    ->visible(fn ($livewire) => $livewire instanceof Pages\CreateMembers)
                     ->columnSpan(1)
                     ->schema([
                         Forms\Components\Select::make('membership_id')
@@ -172,24 +173,96 @@ class MembersResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('renew') // Define a custom action
-                    ->requiresConfirmation()
-                    ->label('Renew')
-                    ->action(function (Member $record) {
-                        $membership = $record->membership()->first(); // Fetch the related membership
-                        
-                        if ($membership) {
-                            $expiryDate = now()->addDays($membership->duration)->toDateString();
+                Tables\Actions\Action::make('renew')
+                ->label('Renew')
+                ->color('success')
+                ->requiresConfirmation()
+                ->form([
+                    Forms\Components\Select::make('membership_id')
+                        ->relationship('memberships', 'name')
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function (callable $set, $state) {
+                            if ($state) {
+                                $membership = Membership::find($state);
             
-                            // Update the expiry in the pivot table
-                            $record->membership()->updateExistingPivot($membership->id, ['expiry' => $expiryDate]);
+                                if ($membership) {
+                                    $expiryDate = now()->addDays($membership->duration)->toDateString();
+                                    $set('expiry', $expiryDate);
+                                }
+                            }
+                        }),
+                    Forms\Components\TextInput::make('coupon_code')
+                        ->nullable()
+                        ->label('Coupon Code')
+                        ->afterStateUpdated(function (callable $set, $state) {
+                            if ($state) {
+                                $coupon = Coupon::where('code', $state)->first();
             
-                            $record->save(); // Save the record if any additional changes are needed
-                        } else {
-                            throw new \Exception('Membership not found for renewal.');
+                                if (!$coupon) {
+                                    Notification::make()
+                                        ->title('Coupon does not exist')
+                                        ->danger()
+                                        ->send();
+                                    $set('coupon_code', null);
+                                    return;
+                                }
+            
+                                if ($coupon->member_id !== null) {
+                                    Notification::make()
+                                        ->title('Coupon already used')
+                                        ->danger()
+                                        ->send();
+                                    $set('coupon_code', null);
+                                    return;
+                                }
+            
+                                if ($coupon->status == 'expired') {
+                                    Notification::make()
+                                        ->title('Coupon expired')
+                                        ->danger()
+                                        ->send();
+                                    $set('coupon_code', null);
+                                    return;
+                                }
+            
+                                Notification::make()
+                                    ->title('Coupon valid')
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
+                    Forms\Components\DatePicker::make('expiry')
+                        ->label('Expiry Date')
+                        ->disabled(),
+                ])
+                ->action(function (Member $record, array $data) {
+                    $membership = $record->memberships()->find($data['membership_id']);
+            
+                    if ($membership) {
+                        $expiryDate = now()->addDays($membership->duration)->toDateString();
+            
+                        // Update the expiry in the pivot table
+                        // $record->memberships()->updateExistingPivot($membership->id, ['expiry' => $expiryDate]);
+            
+                        // If a coupon code is provided, mark it as used
+                        if (!empty($data['coupon_code'])) {
+                            $coupon = Coupon::where('code', $data['coupon_code'])->first();
+                            if ($coupon) {
+                                $coupon->update(['member_id' => $record->id]);
+                            }
                         }
-                    })
-                    ->color('success'), // Optional: Add a color for the button
+            
+                        Notification::make()
+                            ->title('Membership renewed successfully!')
+                            ->success()
+                            ->send();
+                    } else {
+                        throw new \Exception('Membership not found for renewal.');
+                    }
+                })
+                ->visible(fn (Member $record) => $record->status == 0)
+            
             ])
             ->paginated(false)
             ->bulkActions([
